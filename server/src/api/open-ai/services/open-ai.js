@@ -1,0 +1,49 @@
+const fs = require('fs');
+const { ApplicationError } = require('@strapi/utils').errors;
+const { Configuration, OpenAIApi } = require("openai");
+
+function configureOpenAi(apiKey) {
+  const configuration = new Configuration({
+    apiKey: apiKey,
+  });
+  return new OpenAIApi(configuration);
+}
+
+module.exports = ({ strapi }) => ({
+  
+  async openAiRequest(payload, type = "completion") {
+    const openai = configureOpenAi(process.env.OPENAI_API_KEY);
+    const defaultPrompt = "summarize the following text with headings, sections, and bullet points and return in markdown:";
+
+    async function createCompletion(payload) {
+      const response = await openai.createCompletion({
+        model: "text-davinci-003",
+        prompt: payload.prompt || defaultPrompt + payload.content,
+        temperature: 0.7,
+        max_tokens: 2500,
+      });
+      console.log(response.data, "response.data")
+      return response.data;
+    }
+
+    async function createTranscription(payload) {
+      const audioFile = fs.createReadStream(payload.audioFilePath);
+      try {
+        const response = await openai.createTranscription(audioFile, "whisper-1");
+        console.log(response.data, "response.data")
+        return response.data;
+      } catch (error) {
+        throw new ApplicationError("Invalid audio file: Please provide a valid audio file");
+      }
+    }
+
+    switch (type) {
+      case "completion":
+        return await createCompletion(payload);
+      case "transcription":
+        return await createTranscription(payload);
+      default:
+        throw new ApplicationError("Invalid type: Please provide a valid type");
+    }
+  },
+});
