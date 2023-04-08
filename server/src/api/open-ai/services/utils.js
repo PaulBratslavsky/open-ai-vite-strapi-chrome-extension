@@ -22,40 +22,43 @@ module.exports = ({ strapi }) => ({
     console.log(ctx.request.body.url, "ctx.request.body.url")
     if (!ctx.request.body.url) ctx.throw(400, 'Please provide a video url');
     if (!ytdl.validateURL(ctx.request.body.url)) ctx.throw(400, 'Please provide a valid video url');
-
+  
     const videoUrl = ctx.request.body.url;
     const fileName = generateUniqueFilename();
-
+  
     const outputFile = path.join(os.tmpdir(), fileName);
-
-    const videoStream = ytdl(videoUrl, { quality: 'highest' });
+  
+    const info = await ytdl.getInfo(videoUrl);
+    const format = ytdl.chooseFormat(info.formats, { quality: 'highestaudio' });
+  
+    const videoStream = ytdl.downloadFromInfo(info, { format });
     const writeStream = fs.createWriteStream(outputFile);
-
+  
     return new Promise((resolve, reject) => {
       videoStream.pipe(writeStream);
-      videoStream.on('finish', () => {
+      writeStream.on('close', () => {
         console.log('Video downloaded!');
-        resolve(outputFile);
+        resolve({ outputFile, format });
       });
-
+  
       videoStream.on('error', (error) => {
         console.error('Error downloading video:', error);
         reject(error);
       });
     });
   },
-
-  async convertVideoToAudio(videoFilePath) {
+  
+  async convertVideoToAudio({ videoFilePath, format }) {
     const outputFile = path.join(os.tmpdir(), `${path.parse(videoFilePath).name}.mp3`);
+  
     return new Promise((resolve, reject) => {
       ffmpeg(videoFilePath)
-        .outputOptions([
-          '-vn',
-          '-acodec', 'libmp3lame',
-          '-ac', '2',
-          '-ab', '160k',
-          '-ar', '48000'
-        ])
+        .inputFormat(format.container)
+        .noVideo()
+        .audioCodec('libmp3lame')
+        .audioChannels(2)
+        .audioBitrate('160k')
+        .audioFrequency(48000)
         .save(outputFile)
         .on('error', (error) => {
           console.error('FFmpeg error:', error);
@@ -68,4 +71,5 @@ module.exports = ({ strapi }) => ({
         });
     });
   }
+  
 });

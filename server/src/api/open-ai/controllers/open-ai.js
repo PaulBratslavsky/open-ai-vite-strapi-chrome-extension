@@ -2,13 +2,13 @@ module.exports = ({ strapi }) => ({
   async createVideoSummary(ctx) {
 
     try {
-      const videoFilePath = await strapi
+      const { outputFile, format } = await strapi
         .services['api::open-ai.utils']
         .downloadVideoFile(ctx);
 
       const audioFilePath = await strapi
         .services['api::open-ai.utils']
-        .convertVideoToAudio(videoFilePath);
+        .convertVideoToAudio({ videoFilePath: outputFile, format });
 
       const transcription = await strapi
         .services['api::open-ai.open-ai']

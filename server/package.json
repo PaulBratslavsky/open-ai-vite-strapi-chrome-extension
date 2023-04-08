@@ -7,7 +7,8 @@
     "develop": "strapi develop",
     "start": "strapi start",
     "build": "strapi build",
-    "strapi": "strapi"
+    "strapi": "strapi",
+    "postinstall": "patch-package"
   },
   "dependencies": {
     "@strapi/plugin-i18n": "4.9.0",
@@ -17,7 +18,9 @@
     "ffmpeg-static": "^5.1.0",
     "fluent-ffmpeg": "^2.1.2",
     "openai": "^3.2.1",
-    "ytdl-core": "4.9.1"
+    "patch-package": "^6.5.1",
+    "postinstall-postinstall": "^2.1.0",
+    "ytdl-core": "4.11.3"
   },
   "author": {
     "name": "A Strapi developer"
